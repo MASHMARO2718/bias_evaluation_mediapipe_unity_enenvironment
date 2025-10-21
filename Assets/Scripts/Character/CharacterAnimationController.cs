@@ -2,7 +2,7 @@ using UnityEngine;
 
 /// <summary>
 /// キャラクターのアニメーション制御クラス
-/// Animation コンポーネントを使用してシンプルに実装
+/// Animator コンポーネントを使用してシンプルに実装
 /// </summary>
 public class CharacterAnimationController : MonoBehaviour
 {
@@ -10,33 +10,20 @@ public class CharacterAnimationController : MonoBehaviour
     [Tooltip("再生するアニメーションクリップ（Inspector で差し替え可能）")]
     public AnimationClip animationClip;
 
-    [Tooltip("アニメーションをループ再生するか")]
-    public bool loopAnimation = true;
-
-    [Tooltip("アニメーションの再生速度（1.0 = 通常速度）")]
+    [Tooltip("アニメーション再生速度（1.0 = 通常速度）")]
     [Range(0.1f, 3.0f)]
     public float animationSpeed = 1.0f;
 
-    private Animation animComponent;
+    private Animator animator;
     private bool isPlaying = false;
 
     private void Awake()
     {
-        // Animation コンポーネントを取得または追加
-        animComponent = GetComponent<Animation>();
-        if (animComponent == null)
+        // Animator コンポーネントを取得
+        animator = GetComponent<Animator>();
+        if (animator == null)
         {
-            animComponent = gameObject.AddComponent<Animation>();
-            Debug.Log($"[CharacterAnimationController] {gameObject.name} に Animation コンポーネントを追加しました。", this);
-        }
-    }
-
-    private void Start()
-    {
-        // 初期設定
-        if (animComponent != null)
-        {
-            animComponent.playAutomatically = false;
+            Debug.LogError("[CharacterAnimationController] Animator コンポーネントが見つかりません！Prefabに追加してください。", this);
         }
     }
 
@@ -47,33 +34,27 @@ public class CharacterAnimationController : MonoBehaviour
     {
         if (animationClip == null)
         {
-            Debug.LogError("[CharacterAnimationController] AnimationClip が設定されていません！Inspector で設定してください。", this);
+            Debug.LogError("[CharacterAnimationController] AnimationClip が設定されていません！", this);
             return;
         }
 
-        if (animComponent == null)
+        if (animator == null)
         {
-            Debug.LogError("[CharacterAnimationController] Animation コンポーネントが見つかりません！", this);
+            Debug.LogError("[CharacterAnimationController] Animator コンポーネントが見つかりません！", this);
             return;
         }
 
-        // アニメーションクリップを追加
-        animComponent.AddClip(animationClip, animationClip.name);
+        // Root Motionを有効化
+        animator.applyRootMotion = true;
         
-        // ループ設定
-        AnimationState state = animComponent[animationClip.name];
-        if (state != null)
-        {
-            state.wrapMode = loopAnimation ? WrapMode.Loop : WrapMode.Once;
-            state.speed = animationSpeed;
-        }
+        // 速度設定
+        animator.speed = animationSpeed;
 
-        // 再生
-        animComponent.clip = animationClip;
-        animComponent.Play(animationClip.name);
+        // アニメーションを再生（AnimatorのデフォルトステートがWalkingになっている想定）
+        animator.enabled = true;
         isPlaying = true;
 
-        Debug.Log($"[CharacterAnimationController] アニメーション '{animationClip.name}' を再生開始しました。", this);
+        Debug.Log($"[CharacterAnimationController] アニメーション再生開始。Apply Root Motion: {animator.applyRootMotion}", this);
     }
 
     /// <summary>
@@ -81,9 +62,9 @@ public class CharacterAnimationController : MonoBehaviour
     /// </summary>
     public void StopAnimation()
     {
-        if (animComponent != null && isPlaying)
+        if (animator != null && isPlaying)
         {
-            animComponent.Stop();
+            animator.enabled = false;
             isPlaying = false;
             Debug.Log("[CharacterAnimationController] アニメーションを停止しました。", this);
         }
@@ -96,13 +77,9 @@ public class CharacterAnimationController : MonoBehaviour
     {
         animationSpeed = Mathf.Clamp(speed, 0.1f, 3.0f);
         
-        if (animComponent != null && animationClip != null)
+        if (animator != null)
         {
-            AnimationState state = animComponent[animationClip.name];
-            if (state != null)
-            {
-                state.speed = animationSpeed;
-            }
+            animator.speed = animationSpeed;
         }
     }
 
@@ -111,7 +88,7 @@ public class CharacterAnimationController : MonoBehaviour
     /// </summary>
     public bool IsPlaying()
     {
-        return isPlaying && animComponent != null && animComponent.isPlaying;
+        return isPlaying && animator != null && animator.enabled;
     }
 
     private void OnDestroy()
@@ -119,4 +96,3 @@ public class CharacterAnimationController : MonoBehaviour
         StopAnimation();
     }
 }
-
