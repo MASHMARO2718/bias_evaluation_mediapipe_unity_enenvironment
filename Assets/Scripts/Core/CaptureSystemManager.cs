@@ -153,9 +153,40 @@ public class CaptureSystemManager : MonoBehaviour
             jointRecorder = gameObject.AddComponent<JointRecorder>();
         }
 
-        // 設定を適用（タイムスタンプ付きファイル名）
-        jointRecorder.csvFileName = $"joint_positions_{System.DateTime.Now:yyyyMMdd_HHmmss}.csv";
+        // 設定を適用
+        jointRecorder.outputFolderName = outputFolderName;
         jointRecorder.recordFrameRate = targetFrameRate;
+    }
+
+    /// <summary>
+    /// カメラ座標に基づいて出力フォルダ名を設定
+    /// </summary>
+    private void SetupOutputFolderWithCameraPosition()
+    {
+        if (captureCamera == null)
+        {
+            Debug.LogWarning("[CaptureSystemManager] Capture Camera が設定されていないため、デフォルトのフォルダ名を使用します。", this);
+            return;
+        }
+
+        // カメラの座標を取得
+        Vector3 cameraPos = captureCamera.transform.position;
+
+        // フォルダ名を生成（小数点1桁まで）
+        string folderName = $"CapturedFrames_{cameraPos.x:F1}_{cameraPos.y:F1}_{cameraPos.z:F1}";
+
+        // FrameCapturer と JointRecorder に設定
+        if (frameCapturer != null)
+        {
+            frameCapturer.outputFolderName = folderName;
+        }
+
+        if (jointRecorder != null)
+        {
+            jointRecorder.outputFolderName = folderName;
+        }
+
+        Debug.Log($"[CaptureSystemManager] 出力フォルダ名を設定しました: {folderName}", this);
     }
 
     /// <summary>
@@ -220,6 +251,9 @@ public class CaptureSystemManager : MonoBehaviour
     {
         isRunning = true;
         UpdateStatus("キャラクター生成中...");
+
+        // カメラ座標に基づいて出力フォルダ名を設定
+        SetupOutputFolderWithCameraPosition();
 
         // キャラクターを生成
         SpawnCharacter();
@@ -364,6 +398,12 @@ public class CaptureSystemManager : MonoBehaviour
             frameCapturer.StopCapture();
         }
 
+        // 関節記録も停止
+        if (jointRecorder != null && jointRecorder.IsRecording())
+        {
+            jointRecorder.StopRecording();
+        }
+
         // キャラクター削除
         if (currentCharacter != null)
         {
@@ -371,10 +411,36 @@ public class CaptureSystemManager : MonoBehaviour
             currentCharacter = null;
         }
 
+        // トリガーゾーンをリセット（次回のために）
+        ResetTriggerZones();
+
         isRunning = false;
         UpdateStatus("完了 - 待機中");
 
         Debug.Log("[CaptureSystemManager] シーケンスが完了しました。", this);
+    }
+
+    /// <summary>
+    /// トリガーゾーンをリセット
+    /// </summary>
+    private void ResetTriggerZones()
+    {
+        if (captureStartZone != null)
+        {
+            captureStartZone.ResetTrigger();
+        }
+
+        if (captureEndZone != null)
+        {
+            captureEndZone.ResetTrigger();
+        }
+
+        if (stopZone != null)
+        {
+            stopZone.ResetTrigger();
+        }
+
+        Debug.Log("[CaptureSystemManager] トリガーゾーンをリセットしました。", this);
     }
 
     /// <summary>

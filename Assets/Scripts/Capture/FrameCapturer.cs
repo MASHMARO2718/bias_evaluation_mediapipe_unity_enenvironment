@@ -40,9 +40,6 @@ public class FrameCapturer : MonoBehaviour
 
     private void Awake()
     {
-        // 出力パスを設定
-        outputPath = Path.Combine(Application.dataPath, "Output", outputFolderName);
-
         // RenderTexture と Texture2D を作成
         renderTexture = new RenderTexture(captureWidth, captureHeight, 24);
         texture2D = new Texture2D(captureWidth, captureHeight, TextureFormat.RGB24, false);
@@ -58,6 +55,9 @@ public class FrameCapturer : MonoBehaviour
             Debug.LogError("[FrameCapturer] Target Camera が設定されていません！", this);
             return;
         }
+
+        // 出力パスを設定（撮影開始時に毎回更新）
+        outputPath = Path.Combine(Application.dataPath, "Output", outputFolderName);
 
         // 出力フォルダを作成
         if (!Directory.Exists(outputPath))
