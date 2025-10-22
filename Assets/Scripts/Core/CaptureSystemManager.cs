@@ -61,6 +61,7 @@ public class CaptureSystemManager : MonoBehaviour
     private GameObject currentCharacter;
     private CharacterAnimationController animationController;
     private FrameCapturer frameCapturer;
+    private JointRecorder jointRecorder;
     private bool isRunning = false;
 
     private void Start()
@@ -80,6 +81,9 @@ public class CaptureSystemManager : MonoBehaviour
 
         // FrameCapturerの初期化
         InitializeFrameCapturer();
+
+        // JointRecorderの初期化
+        InitializeJointRecorder();
 
         // ステータス更新
         UpdateStatus("待機中");
@@ -136,6 +140,22 @@ public class CaptureSystemManager : MonoBehaviour
         frameCapturer.targetFrameRate = targetFrameRate;
         frameCapturer.useFixedFrameRate = useFixedFrameRate;
         frameCapturer.outputFolderName = outputFolderName;
+    }
+
+    /// <summary>
+    /// JointRecorderの初期化
+    /// </summary>
+    private void InitializeJointRecorder()
+    {
+        jointRecorder = gameObject.GetComponent<JointRecorder>();
+        if (jointRecorder == null)
+        {
+            jointRecorder = gameObject.AddComponent<JointRecorder>();
+        }
+
+        // 設定を適用（タイムスタンプ付きファイル名）
+        jointRecorder.csvFileName = $"joint_positions_{System.DateTime.Now:yyyyMMdd_HHmmss}.csv";
+        jointRecorder.recordFrameRate = targetFrameRate;
     }
 
     /// <summary>
@@ -236,6 +256,16 @@ public class CaptureSystemManager : MonoBehaviour
         animationController.animationClip = animationClip;
         animationController.animationSpeed = animationSpeed;
 
+        // JointRecorder の対象を設定
+        if (jointRecorder != null)
+        {
+            Animator animator = currentCharacter.GetComponent<Animator>();
+            if (animator != null)
+            {
+                jointRecorder.targetAnimator = animator;
+            }
+        }
+
         Debug.Log($"[CaptureSystemManager] キャラクターを生成しました: {spawnPosition}", this);
     }
 
@@ -267,6 +297,12 @@ public class CaptureSystemManager : MonoBehaviour
             frameCapturer.StartCapture();
         }
 
+        // 関節記録開始
+        if (jointRecorder != null)
+        {
+            jointRecorder.StartRecording();
+        }
+
         // ステータス更新コルーチン開始
         StartCoroutine(UpdateCaptureStatus());
     }
@@ -284,6 +320,12 @@ public class CaptureSystemManager : MonoBehaviour
         if (frameCapturer != null)
         {
             frameCapturer.StopCapture();
+        }
+
+        // 関節記録停止
+        if (jointRecorder != null)
+        {
+            jointRecorder.StopRecording();
         }
 
         // ステータス更新コルーチン停止
