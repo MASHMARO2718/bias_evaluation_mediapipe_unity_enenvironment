@@ -473,6 +473,14 @@ public class CaptureSystemManager : MonoBehaviour
         Debug.Log($"[Status] {message}");
     }
 
+    /// <summary>
+    /// 実行中かどうかを取得
+    /// </summary>
+    public bool IsRunning()
+    {
+        return isRunning;
+    }
+
     private void OnDestroy()
     {
         // クリーンアップ

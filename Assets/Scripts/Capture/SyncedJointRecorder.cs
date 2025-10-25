@@ -40,8 +40,8 @@ public class SyncedJointRecorder : MonoBehaviour
         // 記録対象のボーン一覧を取得
         bones = (HumanBodyBones[])System.Enum.GetValues(typeof(HumanBodyBones));
         
-        // FrameCapturerを取得
-        frameCapturer = FindObjectOfType<FrameCapturer>();
+        // FrameCapturerを取得（非推奨警告を回避）
+        frameCapturer = FindFirstObjectByType<FrameCapturer>();
         if (frameCapturer == null)
         {
             Debug.LogError("[SyncedJointRecorder] FrameCapturer が見つかりません！", this);
@@ -65,9 +65,10 @@ public class SyncedJointRecorder : MonoBehaviour
             return;
         }
 
-        // 出力パスを設定（記録開始時に毎回新しいファイル名を生成）
+        // 出力パスを設定（プロジェクト直下のOutputフォルダ、Assets外）
+        string projectRoot = Directory.GetParent(Application.dataPath).FullName;
         string timestampedFileName = $"synced_joint_positions_{System.DateTime.Now:yyyyMMdd_HHmmss}.csv";
-        outputPath = Path.Combine(Application.dataPath, "Output", outputFolderName, timestampedFileName);
+        outputPath = Path.Combine(projectRoot, "Output", outputFolderName, timestampedFileName);
 
         // データをクリア
         csvLines.Clear();

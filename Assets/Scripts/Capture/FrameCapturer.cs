@@ -56,8 +56,9 @@ public class FrameCapturer : MonoBehaviour
             return;
         }
 
-        // 出力パスを設定（撮影開始時に毎回更新）
-        outputPath = Path.Combine(Application.dataPath, "Output", outputFolderName);
+        // 出力パスを設定（プロジェクト直下のOutputフォルダ、Assets外）
+        string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+        outputPath = Path.Combine(projectRoot, "Output", outputFolderName);
 
         // 出力フォルダを作成
         if (!Directory.Exists(outputPath))
@@ -149,9 +150,9 @@ public class FrameCapturer : MonoBehaviour
         targetCamera.targetTexture = null;
         RenderTexture.active = currentRT;
 
-        // PNG として保存
-        byte[] bytes = texture2D.EncodeToPNG();
-        string filename = $"frame_{capturedFrameCount:D4}.png";
+        // JPG として保存（品質90%でファイルサイズ大幅削減）
+        byte[] bytes = texture2D.EncodeToJPG(90);
+        string filename = $"frame_{capturedFrameCount:D4}.jpg";
         string filepath = Path.Combine(outputPath, filename);
 
         try
@@ -173,7 +174,7 @@ public class FrameCapturer : MonoBehaviour
     {
         if (Directory.Exists(outputPath))
         {
-            string[] files = Directory.GetFiles(outputPath, "frame_*.png");
+            string[] files = Directory.GetFiles(outputPath, "frame_*.jpg");
             foreach (string file in files)
             {
                 try
