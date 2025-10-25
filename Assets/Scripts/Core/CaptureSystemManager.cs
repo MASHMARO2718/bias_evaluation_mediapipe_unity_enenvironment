@@ -61,7 +61,7 @@ public class CaptureSystemManager : MonoBehaviour
     private GameObject currentCharacter;
     private CharacterAnimationController animationController;
     private FrameCapturer frameCapturer;
-    private JointRecorder jointRecorder;
+    private SyncedJointRecorder syncedJointRecorder;
     private bool isRunning = false;
 
     private void Start()
@@ -82,8 +82,8 @@ public class CaptureSystemManager : MonoBehaviour
         // FrameCapturerの初期化
         InitializeFrameCapturer();
 
-        // JointRecorderの初期化
-        InitializeJointRecorder();
+        // SyncedJointRecorderの初期化
+        InitializeSyncedJointRecorder();
 
         // ステータス更新
         UpdateStatus("待機中");
@@ -143,19 +143,18 @@ public class CaptureSystemManager : MonoBehaviour
     }
 
     /// <summary>
-    /// JointRecorderの初期化
+    /// SyncedJointRecorderの初期化
     /// </summary>
-    private void InitializeJointRecorder()
+    private void InitializeSyncedJointRecorder()
     {
-        jointRecorder = gameObject.GetComponent<JointRecorder>();
-        if (jointRecorder == null)
+        syncedJointRecorder = gameObject.GetComponent<SyncedJointRecorder>();
+        if (syncedJointRecorder == null)
         {
-            jointRecorder = gameObject.AddComponent<JointRecorder>();
+            syncedJointRecorder = gameObject.AddComponent<SyncedJointRecorder>();
         }
 
         // 設定を適用
-        jointRecorder.outputFolderName = outputFolderName;
-        jointRecorder.recordFrameRate = targetFrameRate;
+        syncedJointRecorder.outputFolderName = outputFolderName;
     }
 
     /// <summary>
@@ -175,15 +174,15 @@ public class CaptureSystemManager : MonoBehaviour
         // フォルダ名を生成（小数点1桁まで）
         string folderName = $"CapturedFrames_{cameraPos.x:F1}_{cameraPos.y:F1}_{cameraPos.z:F1}";
 
-        // FrameCapturer と JointRecorder に設定
+        // FrameCapturer と SyncedJointRecorder に設定
         if (frameCapturer != null)
         {
             frameCapturer.outputFolderName = folderName;
         }
 
-        if (jointRecorder != null)
+        if (syncedJointRecorder != null)
         {
-            jointRecorder.outputFolderName = folderName;
+            syncedJointRecorder.outputFolderName = folderName;
         }
 
         Debug.Log($"[CaptureSystemManager] 出力フォルダ名を設定しました: {folderName}", this);
@@ -290,13 +289,13 @@ public class CaptureSystemManager : MonoBehaviour
         animationController.animationClip = animationClip;
         animationController.animationSpeed = animationSpeed;
 
-        // JointRecorder の対象を設定
-        if (jointRecorder != null)
+        // SyncedJointRecorder の対象を設定
+        if (syncedJointRecorder != null)
         {
             Animator animator = currentCharacter.GetComponent<Animator>();
             if (animator != null)
             {
-                jointRecorder.targetAnimator = animator;
+                syncedJointRecorder.targetAnimator = animator;
             }
         }
 
@@ -332,9 +331,9 @@ public class CaptureSystemManager : MonoBehaviour
         }
 
         // 関節記録開始
-        if (jointRecorder != null)
+        if (syncedJointRecorder != null)
         {
-            jointRecorder.StartRecording();
+            syncedJointRecorder.StartRecording();
         }
 
         // ステータス更新コルーチン開始
@@ -357,13 +356,19 @@ public class CaptureSystemManager : MonoBehaviour
         }
 
         // 関節記録停止
-        if (jointRecorder != null)
+        if (syncedJointRecorder != null)
         {
-            jointRecorder.StopRecording();
+            syncedJointRecorder.StopRecording();
         }
 
         // ステータス更新コルーチン停止
         StopCoroutine(UpdateCaptureStatus());
+
+        // 同期確認
+        if (syncedJointRecorder != null)
+        {
+            syncedJointRecorder.ValidateSync();
+        }
 
         UpdateStatus($"撮影完了 - {frameCapturer.GetCapturedFrameCount()} フレーム");
     }
@@ -399,9 +404,9 @@ public class CaptureSystemManager : MonoBehaviour
         }
 
         // 関節記録も停止
-        if (jointRecorder != null && jointRecorder.IsRecording())
+        if (syncedJointRecorder != null && syncedJointRecorder.IsRecording())
         {
-            jointRecorder.StopRecording();
+            syncedJointRecorder.StopRecording();
         }
 
         // キャラクター削除
