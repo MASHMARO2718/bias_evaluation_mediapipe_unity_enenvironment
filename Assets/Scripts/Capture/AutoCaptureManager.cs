@@ -10,7 +10,7 @@ using System.IO;
 public class AutoCaptureManager : MonoBehaviour
 {
     [Header("Auto Capture Settings")]
-    [Tooltip("CSVファイルのパス（プロジェクト直下）")]
+    [Tooltip("カメラ座標CSV。相対=プロジェクトルート基準（例: data/poses.csv）。絶対パス可")]
     public string csvFilePath = "camera_coordinates_288.csv";
 
     [Tooltip("各撮影間の待機時間（秒）")]
@@ -60,6 +60,10 @@ public class AutoCaptureManager : MonoBehaviour
 
     private void Start()
     {
+        // フラグをリセット
+        isAutoCapturing = false;
+        currentCaptureIndex = 0;
+
         // ボタンイベント設定
         if (autoCaptureButton != null)
         {
@@ -82,9 +86,12 @@ public class AutoCaptureManager : MonoBehaviour
 
         try
         {
-            // プロジェクト直下のCSVファイルパス
-            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
-            string csvPath = Path.Combine(projectRoot, csvFilePath);
+            string csvPath = CapturePathUtility.ResolveFilePath(csvFilePath);
+            if (string.IsNullOrEmpty(csvPath))
+            {
+                Debug.LogError("[AutoCaptureManager] csvFilePath が空です。", this);
+                return;
+            }
 
             if (!File.Exists(csvPath))
             {
@@ -93,6 +100,7 @@ public class AutoCaptureManager : MonoBehaviour
             }
 
             string[] lines = File.ReadAllLines(csvPath);
+            Debug.Log($"[AutoCaptureManager] CSVファイルを読み込みました。行数: {lines.Length}", this);
             
             // ヘッダー行をスキップ（1行目）
             for (int i = 1; i < lines.Length; i++)
@@ -101,24 +109,41 @@ public class AutoCaptureManager : MonoBehaviour
                 
                 if (values.Length >= 5)
                 {
-                    // X,Y,Z,Radius,FolderName
-                    float x = float.Parse(values[0]);
-                    float y = float.Parse(values[1]);
-                    float z = float.Parse(values[2]);
-                    string folderName = values[4];
-
-                    // カメラをキャラクターの方向に向ける（原点(0,0,0)を向く）
-                    Vector3 cameraPos = new Vector3(x, y, z);
-                    Vector3 lookDirection = Vector3.zero - cameraPos;
-                    Quaternion rotation = Quaternion.LookRotation(lookDirection);
-
-                    loadedPositions.Add(new CameraPosition
+                    try
                     {
-                        positionName = folderName,
-                        position = cameraPos,
-                        rotation = rotation.eulerAngles,
-                        enabled = true
-                    });
+                        // X,Y,Z,Radius,FolderName
+                        float x = float.Parse(values[0]);
+                        float y = float.Parse(values[1]);
+                        float z = float.Parse(values[2]);
+                        string folderName = values[4];
+
+                        // カメラをキャラクターの方向に向ける（原点(0,0,0)を向く）
+                        Vector3 cameraPos = new Vector3(x, y, z);
+                        Vector3 lookDirection = Vector3.zero - cameraPos;
+                        Quaternion rotation = Quaternion.LookRotation(lookDirection);
+
+                        loadedPositions.Add(new CameraPosition
+                        {
+                            positionName = folderName,
+                            position = cameraPos,
+                            rotation = rotation.eulerAngles,
+                            enabled = true
+                        });
+
+                        // 最初の数行をデバッグ出力
+                        if (i <= 3)
+                        {
+                            Debug.Log($"[AutoCaptureManager] 行{i}: X={x}, Y={y}, Z={z}, Folder={folderName}", this);
+                        }
+                    }
+                    catch (System.Exception parseError)
+                    {
+                        Debug.LogError($"[AutoCaptureManager] 行{i}の解析に失敗: {lines[i]} - {parseError.Message}", this);
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning($"[AutoCaptureManager] 行{i}の列数が不足: {lines[i]} (列数: {values.Length})", this);
                 }
             }
 
@@ -140,6 +165,9 @@ public class AutoCaptureManager : MonoBehaviour
             Debug.LogWarning("[AutoCaptureManager] 既に自動撮影中です。", this);
             return;
         }
+
+        // CSV読み込みを再実行
+        LoadCameraPositionsFromCSV();
 
         if (loadedPositions.Count == 0)
         {
@@ -215,11 +243,13 @@ public class AutoCaptureManager : MonoBehaviour
     /// </summary>
     private IEnumerator ExecuteSingleCapture(string positionName)
     {
-        // CaptureSystemManagerの撮影開始
-        if (captureSystemManager != null)
+        if (captureSystemManager == null)
         {
-            captureSystemManager.OnStartButtonClicked();
+            Debug.LogError("[AutoCaptureManager] CaptureSystemManager が未設定のため撮影をスキップします。", this);
+            yield break;
         }
+
+        captureSystemManager.OnStartButtonClicked();
 
         // 撮影完了まで待機（トリガーゾーン通過を待つ）
         yield return new WaitUntil(() => !captureSystemManager.IsRunning());
@@ -271,6 +301,18 @@ public class AutoCaptureManager : MonoBehaviour
         LoadCameraPositionsFromCSV();
         totalCaptures = loadedPositions.Count;
         UpdateStatus($"再読み込み完了 - {totalCaptures}箇所の撮影準備完了");
+    }
+
+    /// <summary>
+    /// 自動撮影を強制リセット
+    /// </summary>
+    public void ResetAutoCapture()
+    {
+        isAutoCapturing = false;
+        currentCaptureIndex = 0;
+        StopAllCoroutines();
+        UpdateStatus("リセット完了 - 待機中");
+        Debug.Log("[AutoCaptureManager] 自動撮影をリセットしました。", this);
     }
 
     private void OnDestroy()

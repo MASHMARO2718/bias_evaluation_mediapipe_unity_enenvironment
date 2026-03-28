@@ -13,7 +13,10 @@ public class SyncedJointRecorder : MonoBehaviour
     [Tooltip("記録対象のキャラクターのAnimator")]
     public Animator targetAnimator;
 
-    [Tooltip("出力フォルダ名")]
+    [Tooltip("出力ルート。空欄=プロジェクト直下の Output。FrameCapturer と揃えること")]
+    public string outputRootPath = "";
+
+    [Tooltip("出力ルート直下のサブフォルダ名")]
     public string outputFolderName = "CapturedFrames";
 
     [Tooltip("出力CSVファイル名（記録開始時に自動でタイムスタンプ付きに変更されます）")]
@@ -65,10 +68,9 @@ public class SyncedJointRecorder : MonoBehaviour
             return;
         }
 
-        // 出力パスを設定（プロジェクト直下のOutputフォルダ、Assets外）
-        string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+        string root = CapturePathUtility.ResolveOutputRoot(outputRootPath);
         string timestampedFileName = $"synced_joint_positions_{System.DateTime.Now:yyyyMMdd_HHmmss}.csv";
-        outputPath = Path.Combine(projectRoot, "Output", outputFolderName, timestampedFileName);
+        outputPath = Path.Combine(root, outputFolderName, timestampedFileName);
 
         // データをクリア
         csvLines.Clear();

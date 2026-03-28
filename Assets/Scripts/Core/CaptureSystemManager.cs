@@ -44,8 +44,11 @@ public class CaptureSystemManager : MonoBehaviour
     [Tooltip("固定フレームレート撮影を使用")]
     public bool useFixedFrameRate = true;
 
-    [Tooltip("出力フォルダ名")]
+    [Tooltip("出力フォルダ名（出力ルート直下）")]
     public string outputFolderName = "CapturedFrames";
+
+    [Tooltip("画像・関節CSVの出力ルート。空欄=プロジェクト直下の Output。相対=プロジェクトルート基準。絶対パス可")]
+    public string captureOutputRootPath = "";
 
     [Header("Trigger Zones")]
     [Tooltip("撮影開始トリガー（Z=-3）")]
@@ -139,6 +142,7 @@ public class CaptureSystemManager : MonoBehaviour
         frameCapturer.captureHeight = captureHeight;
         frameCapturer.targetFrameRate = targetFrameRate;
         frameCapturer.useFixedFrameRate = useFixedFrameRate;
+        frameCapturer.outputRootPath = captureOutputRootPath;
         frameCapturer.outputFolderName = outputFolderName;
     }
 
@@ -154,6 +158,7 @@ public class CaptureSystemManager : MonoBehaviour
         }
 
         // 設定を適用
+        syncedJointRecorder.outputRootPath = captureOutputRootPath;
         syncedJointRecorder.outputFolderName = outputFolderName;
     }
 
@@ -177,11 +182,13 @@ public class CaptureSystemManager : MonoBehaviour
         // FrameCapturer と SyncedJointRecorder に設定
         if (frameCapturer != null)
         {
+            frameCapturer.outputRootPath = captureOutputRootPath;
             frameCapturer.outputFolderName = folderName;
         }
 
         if (syncedJointRecorder != null)
         {
+            syncedJointRecorder.outputRootPath = captureOutputRootPath;
             syncedJointRecorder.outputFolderName = folderName;
         }
 

@@ -3,7 +3,7 @@ using System.IO;
 using System.Collections;
 
 /// <summary>
-/// カメラの映像を連続撮影してPNG形式で保存するクラス
+/// カメラの映像を連続撮影し、JPG（品質90%）として保存するクラス
 /// </summary>
 public class FrameCapturer : MonoBehaviour
 {
@@ -24,7 +24,10 @@ public class FrameCapturer : MonoBehaviour
     public bool useFixedFrameRate = true;
 
     [Header("Output Settings")]
-    [Tooltip("出力フォルダ名（Assets/Output/配下）")]
+    [Tooltip("出力ルート。空欄=プロジェクト直下の Output。相対=プロジェクトルート基準。例: D:\\Captures または Captures")]
+    public string outputRootPath = "";
+
+    [Tooltip("出力ルート直下のサブフォルダ名（実行ごとに CaptureSystemManager 等で上書き可）")]
     public string outputFolderName = "CapturedFrames";
 
     [Header("Status")]
@@ -56,9 +59,8 @@ public class FrameCapturer : MonoBehaviour
             return;
         }
 
-        // 出力パスを設定（プロジェクト直下のOutputフォルダ、Assets外）
-        string projectRoot = Directory.GetParent(Application.dataPath).FullName;
-        outputPath = Path.Combine(projectRoot, "Output", outputFolderName);
+        string root = CapturePathUtility.ResolveOutputRoot(outputRootPath);
+        outputPath = Path.Combine(root, outputFolderName);
 
         // 出力フォルダを作成
         if (!Directory.Exists(outputPath))

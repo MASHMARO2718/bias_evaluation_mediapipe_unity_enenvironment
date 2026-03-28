@@ -1,5 +1,7 @@
 # Trigger Zone Capture System - 開発コンセプト概要
 
+> **実装との対応:** マスターコントローラーは **`CaptureSystemManager`**。キャラクター移動は **`CharacterAnimationController`** + **Root Motion**（旧メモ上の `WalkThroughCaptureManager` / `CharacterMover` は設計時の仮称）。
+
 ## 📋 プロジェクト目標
 
 Unityでアバターの歩行アニメーションを特定区間で連続撮影し、その画像シーケンスを別プロジェクトのMediaPipeで処理するシステムの構築。
@@ -38,17 +40,16 @@ Unityでアバターの歩行アニメーションを特定区間で連続撮影
 
 ## 🏗️ システム構成
 
-### 4つの主要コンポーネント
+### 4つの主要コンポーネント（実装名）
 
-#### 1. **WalkThroughCaptureManager** (マスターコントローラー)
+#### 1. **CaptureSystemManager** (マスターコントローラー)
 - 全体統括・初期化処理
 - UI連携
 - 各コンポーネントの参照管理
 
-#### 2. **CharacterMover** (キャラクター制御)
-- Transform移動 (0,0,-5 → 0,0,5)
-- Animatorによる歩行アニメーション再生
-- 移動とアニメーションの同時実行
+#### 2. **CharacterAnimationController** (キャラクター制御)
+- Animator による歩行アニメーション再生（Root Motion で前進）
+- `CaptureSystemManager` からクリップ・速度を適用
 
 #### 3. **TriggerZone** (空間トリガー) × 3個
 - **Zone 1**: (0,0,-3) - 撮影開始トリガー
@@ -127,17 +128,17 @@ Time.captureFramerate = 30;  // 固定フレームレート
 
 各クラスで公開すべきパラメータ：
 
-### WalkThroughCaptureManager
+### CaptureSystemManager
 - UI参照（Button、StatusText）
 - キャラクター設定（Prefab、アニメーション名）
 - 移動設定（開始/終了位置、速度）
 - 撮影設定（カメラ、解像度、FPS、出力先）
 - トリガーゾーン参照
 
-### CharacterMover
-- Animator参照
-- 移動速度・方向
-- 状態フラグ（isMoving、isAnimating）
+### CharacterAnimationController
+- Animator 参照・クリップ再生
+- アニメーション速度（`animationSpeed`）
+- Root Motion の有効化
 
 ### TriggerZone
 - ゾーンタイプ（CaptureStart/CaptureEnd/Stop）

@@ -74,3 +74,17 @@ crashlytics-build.properties
 # ETC
 UpgradeLog.htm
 
+# Runtime capture output (project root, outside Assets)
+/Output/
+
+# Optional user-defined capture roots next to Assets (add more folder names if you use them)
+/Captures/
+/Datasets/
+
+# Loose generated media / camera lists at repo root (keep committed samples under docs/)
+/*.jpg
+/*.jpeg
+/*.png
+/*.webp
+/camera_coordinates*.csv
+
